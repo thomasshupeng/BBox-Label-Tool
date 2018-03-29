@@ -6,9 +6,9 @@
 
 #
 #-------------------------------------------------------------------------------
-from __future__ import division
-from Tkinter import *
-import tkMessageBox
+#from __future__ import division
+from tkinter import *
+from tkinter import filedialog
 from PIL import Image, ImageTk
 import os
 import glob
@@ -55,12 +55,21 @@ class LabelTool():
 
         # ----------------- GUI stuff ---------------------
         # dir entry & load
-        self.label = Label(self.frame, text = "Image Dir:")
-        self.label.grid(row = 0, column = 0, sticky = E)
-        self.entry = Entry(self.frame)
-        self.entry.grid(row = 0, column = 1, sticky = W+E)
-        self.ldBtn = Button(self.frame, text = "Load", command = self.loadDir)
-        self.ldBtn.grid(row = 0, column = 2, sticky = W+E)
+        self.srcDirBtn = Button(self.frame, text="Image input folder", command=self.selectSrcDir)
+        self.srcDirBtn.grid(row=0, column=0, sticky=E)
+        self.svSourcePath = StringVar()
+        self.entrySrc = Entry(self.frame, textvariable=self.svSourcePath)
+        self.entrySrc.grid(row=0, column=1, sticky=W+E)
+        self.svSourcePath.set(os.getcwd())
+        self.ldBtn = Button(self.frame, text="Load", command=self.loadDir)
+        self.ldBtn.grid(row=0, column=2, sticky=W+E)
+
+        self.desDirBtn = Button(self.frame, text="Label output folder", command=self.selectDesDir)
+        self.desDirBtn.grid(row=1, column=0, sticky=E)
+        self.svDestinationPath = StringVar()
+        self.entryDes = Entry(self.frame, textvariable=self.svDestinationPath)
+        self.entryDes.grid(row=1, column=1, sticky=W+E)
+        self.svDestinationPath.set(os.path.join(os.getcwd(),"Labels"))
 
         # main panel for labeling
         self.mainPanel = Canvas(self.frame, cursor='tcross')
@@ -70,21 +79,21 @@ class LabelTool():
         self.parent.bind("s", self.cancelBBox)
         self.parent.bind("a", self.prevImage) # press 'a' to go backforward
         self.parent.bind("d", self.nextImage) # press 'd' to go forward
-        self.mainPanel.grid(row = 1, column = 1, rowspan = 4, sticky = W+N)
+        self.mainPanel.grid(row=2, column=1, rowspan=4, sticky=W+N)
 
         # showing bbox info & delete bbox
         self.lb1 = Label(self.frame, text = 'Bounding boxes:')
-        self.lb1.grid(row = 1, column = 2,  sticky = W+N)
+        self.lb1.grid(row = 2, column = 2,  sticky = W+N)
         self.listbox = Listbox(self.frame, width = 22, height = 12)
-        self.listbox.grid(row = 2, column = 2, sticky = N)
+        self.listbox.grid(row = 3, column = 2, sticky = N)
         self.btnDel = Button(self.frame, text = 'Delete', command = self.delBBox)
-        self.btnDel.grid(row = 3, column = 2, sticky = W+E+N)
+        self.btnDel.grid(row = 4, column = 2, sticky = W+E+N)
         self.btnClear = Button(self.frame, text = 'ClearAll', command = self.clearBBox)
-        self.btnClear.grid(row = 4, column = 2, sticky = W+E+N)
+        self.btnClear.grid(row = 5, column = 2, sticky = W+E+N)
 
         # control panel for image navigation
         self.ctrPanel = Frame(self.frame)
-        self.ctrPanel.grid(row = 5, column = 1, columnspan = 2, sticky = W+E)
+        self.ctrPanel.grid(row = 6, column = 1, columnspan = 2, sticky = W+E)
         self.prevBtn = Button(self.ctrPanel, text='<< Prev', width = 10, command = self.prevImage)
         self.prevBtn.pack(side = LEFT, padx = 5, pady = 3)
         self.nextBtn = Button(self.ctrPanel, text='Next >>', width = 10, command = self.nextImage)
@@ -100,7 +109,7 @@ class LabelTool():
 
         # example pannel for illustration
         self.egPanel = Frame(self.frame, border = 10)
-        self.egPanel.grid(row = 1, column = 0, rowspan = 5, sticky = N)
+        self.egPanel.grid(row = 2, column = 0, rowspan = 5, sticky = N)
         self.tmpLabel2 = Label(self.egPanel, text = "Examples:")
         self.tmpLabel2.pack(side = TOP, pady = 5)
         self.egLabels = []
@@ -119,21 +128,32 @@ class LabelTool():
 ##        self.setImage()
 ##        self.loadDir()
 
+    def selectSrcDir(self):
+        path = filedialog.askdirectory(title="Select image source folder", initialdir=self.svSourcePath.get())
+        path = path.replace("/", "\\")
+        self.svSourcePath.set(path)
+        return
+
+    def selectDesDir(self):
+        path = filedialog.askdirectory(title="Select label output folder", initialdir=self.svDestinationPath.get())
+        path = path.replace("/", "\\")
+        self.svDestinationPath.set(path)
+        return
+
     def loadDir(self, dbg = False):
         if not dbg:
-            s = self.entry.get()
             self.parent.focus()
-            self.category = int(s)
+            #self.category = int(s)
         else:
             s = r'D:\workspace\python\labelGUI'
 ##        if not os.path.isdir(s):
 ##            tkMessageBox.showerror("Error!", message = "The specified dir doesn't exist!")
 ##            return
         # get image list
-        self.imageDir = os.path.join(r'./Images', '%03d' %(self.category))
-        self.imageList = glob.glob(os.path.join(self.imageDir, '*.JPEG'))
+        self.imageDir = self.svSourcePath.get()
+        self.imageList = glob.glob(os.path.join(self.imageDir, '*.JPG'))
         if len(self.imageList) == 0:
-            print 'No .JPEG images found in the specified dir!'
+            print("No .JPG images found in the specified dir!")
             return
 
         # default to the 1st image in the collection
@@ -141,12 +161,12 @@ class LabelTool():
         self.total = len(self.imageList)
 
          # set up output dir
-        self.outDir = os.path.join(r'./Labels', '%03d' %(self.category))
+        #self.outDir = os.path.join(r'./Labels', '%03d' %(self.category))
+        self.outDir = self.svDestinationPath.get()
         if not os.path.exists(self.outDir):
             os.mkdir(self.outDir)
-
         # load example bboxes
-        self.egDir = os.path.join(r'./Examples', '%03d' %(self.category))
+        self.egDir = os.path.join(os.getcwd(), "Examples\\001")
         if not os.path.exists(self.egDir):
             return
         filelist = glob.glob(os.path.join(self.egDir, '*.JPEG'))
@@ -164,7 +184,7 @@ class LabelTool():
             self.egLabels[i].config(image = self.egList[-1], width = SIZE[0], height = SIZE[1])
 
         self.loadImage()
-        print '%d images loaded from %s' %(self.total, s)
+        print("%d images loaded from %s" %(self.total, self.imageDir))
 
     def loadImage(self):
         # load image
@@ -188,7 +208,6 @@ class LabelTool():
                         bbox_cnt = int(line.strip())
                         continue
                     tmp = [int(t.strip()) for t in line.split()]
-##                    print tmp
                     self.bboxList.append(tuple(tmp))
                     tmpId = self.mainPanel.create_rectangle(tmp[0], tmp[1], \
                                                             tmp[2], tmp[3], \
@@ -203,7 +222,7 @@ class LabelTool():
             f.write('%d\n' %len(self.bboxList))
             for bbox in self.bboxList:
                 f.write(' '.join(map(str, bbox)) + '\n')
-        print 'Image No. %d saved' %(self.cur)
+        print("Image No. %d saved" %(self.cur))
 
 
     def mouseClick(self, event):
